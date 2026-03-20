@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini ProTrend Grid Control Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="bi bi-gem"></i> Gemini ProTrend Grid Controller
+            </span>
+            <div class="d-flex">
+                <span id="connection-status" class="badge bg-secondary me-2">Disconnected</span>
+                <span id="bot-status" class="badge bg-secondary">Bot Stopped</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-3">
+        <div class="row">
+            <!-- Left Column - Controls -->
+            <div class="col-md-3">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <i class="bi bi-plug"></i> Connection
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <label class="form-label">Symbol</label>
+                            <select id="symbol-select" class="form-select">
+                                <option value="XAUUSD">XAUUSD (Gold)</option>
+                                <option value="EURUSD">EURUSD</option>
+                                <option value="GBPUSD">GBPUSD</option>
+                                <option value="USDJPY">USDJPY</option>
+                            </select>
+                        </div>
+                        <button id="connect-btn" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-link"></i> Connect to MT5
+                        </button>
+                        <button id="disconnect-btn" class="btn btn-secondary w-100" disabled>
+                            <i class="bi bi-link-slash"></i> Disconnect
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <i class="bi bi-gear"></i> Bot Settings
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <label class="form-label">Timeframe</label>
+                            <select id="scan-tf" class="form-select">
+                                <option value="M15">M15</option>
+                                <option value="H1" selected>H1</option>
+                                <option value="H4">H4</option>
+                                <option value="D1">D1</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Fast EMA</label>
+                            <input type="number" id="fast-ema" class="form-control" value="13">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Slow EMA</label>
+                            <input type="number" id="slow-ema" class="form-control" value="48">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Lot Size</label>
+                            <input type="number" id="lot-size" class="form-control" value="0.01" step="0.01">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Max Grids</label>
+                            <input type="number" id="max-grids" class="form-control" value="7">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Gap (Pips)</label>
+                            <input type="number" id="gap-pips" class="form-control" value="15" step="1">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">BreakEven ($)</label>
+                            <input type="number" id="break-even" class="form-control" value="0.10" step="0.01">
+                        </div>
+                        <button id="save-settings" class="btn btn-success w-100">
+                            <i class="bi bi-save"></i> Save Settings
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <i class="bi bi-play-circle"></i> Bot Control
+                    </div>
+                    <div class="card-body">
+                        <button id="start-bot" class="btn btn-success w-100 mb-2" disabled>
+                            <i class="bi bi-play-fill"></i> Start Bot
+                        </button>
+                        <button id="stop-bot" class="btn btn-danger w-100" disabled>
+                            <i class="bi bi-stop-fill"></i> Stop Bot
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <i class="bi bi-cart-plus"></i> Manual Trading
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <label class="form-label">Manual Lot Size</label>
+                            <input type="number" id="manual-lot" class="form-control" value="0.01" step="0.01">
+                        </div>
+                        <button id="manual-buy" class="btn btn-primary w-100 mb-2" disabled>
+                            <i class="bi bi-arrow-up-circle"></i> Buy Now
+                        </button>
+                        <button id="manual-sell" class="btn btn-danger w-100 mb-2" disabled>
+                            <i class="bi bi-arrow-down-circle"></i> Sell Now
+                        </button>
+                        <button id="close-all" class="btn btn-warning w-100" disabled>
+                            <i class="bi bi-x-circle"></i> Close All Positions
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Data -->
+            <div class="col-md-9">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <i class="bi bi-graph-up"></i> Market Data
+                            </div>
+                            <div class="card-body">
+                                <div id="market-data">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <small>Symbol</small>
+                                            <h4 id="market-symbol">---</h4>
+                                        </div>
+                                        <div class="col-6">
+                                            <small>Current Price</small>
+                                            <h4 id="market-price">---</h4>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-6">
+                                            <small>Fast EMA</small>
+                                            <h5 id="fast-ema-val">---</h5>
+                                        </div>
+                                        <div class="col-6">
+                                            <small>Slow EMA</small>
+                                            <h5 id="slow-ema-val">---</h5>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small>Trend</small>
+                                        <h3 id="trend-indicator" class="mt-1">---</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <i class="bi bi-wallet2"></i> Account Info
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <small>Balance</small>
+                                        <h5 id="balance">---</h5>
+                                    </div>
+                                    <div class="col-6">
+                                        <small>Equity</small>
+                                        <h5 id="equity">---</h5>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-6">
+                                        <small>Free Margin</small>
+                                        <h5 id="free-margin">---</h5>
+                                    </div>
+                                    <div class="col-6">
+                                        <small>Total P&L</small>
+                                        <h5 id="total-pl">---</h5>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-list-ul"></i> Open Positions
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Ticket</th>
+                                        <th>Type</th>
+                                        <th>Volume</th>
+                                        <th>Open Price</th>
+                                        <th>Current Price</th>
+                                        <th>Profit</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="positions-table">
+                                    <tr>
+                                        <td colspan="7" class="text-center">No open positions</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
